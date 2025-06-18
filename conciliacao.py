@@ -15,21 +15,16 @@ if uploaded_file is not None:
     # Leitura da aba "Worksheet" pulando as 5 primeiras linhas
     worksheet_df = pd.read_excel(xls, sheet_name='Worksheet', header=5)
     
-    # Criação da coluna 'Superintendente'
-    worksheet_df['Superintendente'] = worksheet_df['Nome do Superintendente (Chamado Externo)'] \
-        .combine_first(worksheet_df['Nome do Superintendente (Cadastro de Cliente)']) \
-        .fillna('')
-    
     required_columns = ['Categoria', 'Atendente', 'Origem do Chamado', 'Última Situação']
     if all(col in worksheet_df.columns for col in required_columns):
         # Criar abas
-        tab1, tab_super, tab2, tab3, tab_detalhamento, tab4 = st.tabs([
-            "Análise por Categoria",
-            "Análise por Categoria Superintendente",
+        tab1, tab2, tab3, tab_detalhamento, tab4, tab_origem = st.tabs([
+            "Análise por Categoria",  
             "Análise por Atendente",
             "Painel do Atendente",
             "Detalhamento por Atendente",
-            "Situação"
+            "Situação",
+            "Origem do Chamado"
         ])
         
         with tab1:
@@ -39,39 +34,20 @@ if uploaded_file is not None:
             col1.write(category_counts)
 
             col2.subheader('Gráfico de Categorias')
-            fig, ax = plt.subplots()
-            bars = category_counts.plot(kind='bar', ax=ax)
-            ax.set_xlabel('Categoria')
-            ax.set_ylabel('Contagem')
-            for bar in bars.patches:
-                ax.annotate(format(bar.get_height(), '.0f'), 
-                            (bar.get_x() + bar.get_width() / 2, bar.get_height()), 
-                            ha='center', va='center', 
-                            size=10, xytext=(0, 8), 
-                            textcoords='offset points')
-            col2.pyplot(fig)
-
-        with tab_super:
-            st.subheader('Análise Quantidade de Categoria por Superintendente')
-            sup_options = worksheet_df['Superintendente'].unique()
-            selected_sup = st.selectbox('Selecione o Superintendente', sup_options)
-            df_sup = worksheet_df[worksheet_df['Superintendente'] == selected_sup]
-            category_counts_sup = df_sup['Categoria'].value_counts()
-            col_sup1, col_sup2 = st.columns(2)
-            col_sup1.subheader('Contagem de Categorias')
-            col_sup1.write(category_counts_sup)
-            col_sup2.subheader('Gráfico de Categorias')
-            fig_sup, ax_sup = plt.subplots()
-            category_counts_sup.plot(kind='bar', ax=ax_sup)
-            ax_sup.set_xlabel('Categoria')
-            ax_sup.set_ylabel('Contagem')
-            for bar in ax_sup.patches:
-                ax_sup.annotate(format(bar.get_height(), '.0f'),
-                                (bar.get_x() + bar.get_width() / 2, bar.get_height()),
-                                ha='center', va='bottom',
-                                fontsize=10, xytext=(0, 5),
+            if not category_counts.empty:
+                fig, ax = plt.subplots()
+                bars = category_counts.plot(kind='bar', ax=ax)
+                ax.set_xlabel('Categoria')
+                ax.set_ylabel('Contagem')
+                for bar in bars.patches:
+                    ax.annotate(format(bar.get_height(), '.0f'), 
+                                (bar.get_x() + bar.get_width() / 2, bar.get_height()), 
+                                ha='center', va='center', 
+                                size=10, xytext=(0, 8), 
                                 textcoords='offset points')
-            col_sup2.pyplot(fig_sup)
+                col2.pyplot(fig)
+            else:
+                col2.info('Nenhuma categoria encontrada.')
 
         with tab2:
             attendant_counts = worksheet_df['Atendente'].value_counts()
@@ -79,17 +55,20 @@ if uploaded_file is not None:
             col3.subheader('Contagem de Chamados por cada Atendente')
             col3.write(attendant_counts)
             col4.subheader('Gráfico de Atendentes')
-            fig, ax = plt.subplots()
-            bars = attendant_counts.plot(kind='bar', ax=ax)
-            ax.set_xlabel('Atendente')
-            ax.set_ylabel('Contagem')
-            for bar in bars.patches:
-                ax.annotate(format(bar.get_height(), '.0f'), 
-                            (bar.get_x() + bar.get_width() / 2, bar.get_height()), 
-                            ha='center', va='center', 
-                            size=10, xytext=(0, 8), 
-                            textcoords='offset points')
-            col4.pyplot(fig)
+            if not attendant_counts.empty:
+                fig, ax = plt.subplots()
+                bars = attendant_counts.plot(kind='bar', ax=ax)
+                ax.set_xlabel('Atendente')
+                ax.set_ylabel('Contagem')
+                for bar in bars.patches:
+                    ax.annotate(format(bar.get_height(), '.0f'), 
+                                (bar.get_x() + bar.get_width() / 2, bar.get_height()), 
+                                ha='center', va='center', 
+                                size=10, xytext=(0, 8), 
+                                textcoords='offset points')
+                col4.pyplot(fig)
+            else:
+                col4.info('Nenhum chamado por atendente encontrado.')
 
         with tab3:
             painel_df = worksheet_df[
@@ -100,19 +79,23 @@ if uploaded_file is not None:
             col1, col2 = st.columns(2)
             col1.subheader('Contagem de Chamados Criados por cada Atendente')
             col1.write(painel_attendant_counts)
+
             col2.subheader('Gráfico de Atendentes')
-            fig, ax = plt.subplots()
-            bars = painel_attendant_counts.plot(kind='bar', ax=ax, color='skyblue', edgecolor='black')
-            ax.set_xlabel('Atendente')
-            ax.set_ylabel('Contagem')
-            ax.set_title('Quantidade de chamados')
-            for bar in bars.patches:
-                ax.annotate(format(bar.get_height(), '.0f'),
-                            (bar.get_x() + bar.get_width() / 2, bar.get_height()),
-                            ha='center', va='bottom',
-                            size=10, xytext=(0, 5),
-                            textcoords='offset points')
-            col2.pyplot(fig)
+            if not painel_attendant_counts.empty:
+                fig, ax = plt.subplots()
+                bars = painel_attendant_counts.plot(kind='bar', ax=ax, color='skyblue', edgecolor='black')
+                ax.set_xlabel('Atendente')
+                ax.set_ylabel('Contagem')
+                ax.set_title('Quantidade de chamados')
+                for bar in bars.patches:
+                    ax.annotate(format(bar.get_height(), '.0f'),
+                                (bar.get_x() + bar.get_width() / 2, bar.get_height()),
+                                ha='center', va='bottom',
+                                size=10, xytext=(0, 5),
+                                textcoords='offset points')
+                col2.pyplot(fig)
+            else:
+                col2.info('Nenhum chamado encontrado para os filtros selecionados.')
 
         with tab_detalhamento:
             st.subheader("Detalhamento de cada Chamado Criado por cada Atendente")
@@ -121,25 +104,31 @@ if uploaded_file is not None:
                 (worksheet_df['Origem do Chamado'] == 'Painel do Atendente')
             ]
             attendants_options = painel_df['Atendente'].unique()
-            selected_attendant = st.selectbox("Selecione o Atendente", attendants_options)
-            df_attendant = painel_df[painel_df['Atendente'] == selected_attendant]
-            category_counts = df_attendant['Categoria'].value_counts()
-            col1, col2 = st.columns(2)
-            col1.subheader(f"Contagem de Categorias ({selected_attendant})")
-            col1.write(category_counts)
-            col2.subheader(f"Gráfico de Categorias ({selected_attendant})")
-            fig, ax = plt.subplots()
-            bars = category_counts.plot(kind='bar', ax=ax, color='skyblue', edgecolor='black')
-            ax.set_xlabel("Categoria")
-            ax.set_ylabel("Contagem")
-            ax.set_title(f"Chamados de {selected_attendant}")
-            for bar in bars.patches:
-                ax.annotate(format(bar.get_height(), '.0f'),
-                            (bar.get_x() + bar.get_width() / 2, bar.get_height()),
-                            ha='center', va='bottom',
-                            size=10, xytext=(0, 5),
-                            textcoords='offset points')
-            col2.pyplot(fig)
+            if len(attendants_options) > 0:
+                selected_attendant = st.selectbox("Selecione o Atendente", attendants_options)
+                df_attendant = painel_df[painel_df['Atendente'] == selected_attendant]
+                category_counts = df_attendant['Categoria'].value_counts()
+                col1, col2 = st.columns(2)
+                col1.subheader(f"Contagem de Categorias ({selected_attendant})")
+                col1.write(category_counts)
+                col2.subheader(f"Gráfico de Categorias ({selected_attendant})")
+                if not category_counts.empty:
+                    fig, ax = plt.subplots()
+                    bars = category_counts.plot(kind='bar', ax=ax, color='skyblue', edgecolor='black')
+                    ax.set_xlabel("Categoria")
+                    ax.set_ylabel("Contagem")
+                    ax.set_title(f"Chamados de {selected_attendant}")
+                    for bar in bars.patches:
+                        ax.annotate(format(bar.get_height(), '.0f'),
+                                    (bar.get_x() + bar.get_width() / 2, bar.get_height()),
+                                    ha='center', va='bottom',
+                                    size=10, xytext=(0, 5),
+                                    textcoords='offset points')
+                    col2.pyplot(fig)
+                else:
+                    col2.info('Nenhuma categoria encontrada para este atendente.')
+            else:
+                st.info('Nenhum atendente encontrado para o filtro.')
 
         with tab4:
             situacao_counts = worksheet_df['Última Situação'].value_counts()
@@ -147,17 +136,42 @@ if uploaded_file is not None:
             col7.subheader('Contagem por Situação dos Chamados')
             col7.write(situacao_counts)
             col8.subheader('Gráfico de Última Situação')
-            fig, ax = plt.subplots()
-            bars = situacao_counts.plot(kind='bar', ax=ax)
-            ax.set_xlabel('Última Situação')
-            ax.set_ylabel('Contagem')
-            for bar in bars.patches:
-                ax.annotate(format(bar.get_height(), '.0f'), 
-                            (bar.get_x() + bar.get_width() / 2, bar.get_height()), 
-                            ha='center', va='center', 
-                            size=10, xytext=(0, 8), 
-                            textcoords='offset points')
-            col8.pyplot(fig)
+            if not situacao_counts.empty:
+                fig, ax = plt.subplots()
+                bars = situacao_counts.plot(kind='bar', ax=ax)
+                ax.set_xlabel('Última Situação')
+                ax.set_ylabel('Contagem')
+                for bar in bars.patches:
+                    ax.annotate(format(bar.get_height(), '.0f'), 
+                                (bar.get_x() + bar.get_width() / 2, bar.get_height()), 
+                                ha='center', va='center', 
+                                size=10, xytext=(0, 8), 
+                                textcoords='offset points')
+                col8.pyplot(fig)
+            else:
+                col8.info('Nenhuma situação encontrada.')
+
+        with tab_origem:
+            origem_counts = worksheet_df['Origem do Chamado'].value_counts()
+            col9, col10 = st.columns(2)
+            col9.subheader('Contagem por Origem do Chamado')
+            col9.write(origem_counts)
+            col10.subheader('Gráfico de Origem do Chamado')
+            if not origem_counts.empty:
+                fig, ax = plt.subplots()
+                bars = origem_counts.plot(kind='bar', ax=ax, color='lightgreen', edgecolor='black')
+                ax.set_xlabel('Origem do Chamado')
+                ax.set_ylabel('Contagem')
+                ax.set_title('Distribuição por Origem do Chamado')
+                for bar in bars.patches:
+                    ax.annotate(format(bar.get_height(), '.0f'),
+                                (bar.get_x() + bar.get_width() / 2, bar.get_height()),
+                                ha='center', va='bottom',
+                                size=10, xytext=(0, 5),
+                                textcoords='offset points')
+                col10.pyplot(fig)
+            else:
+                col10.info('Nenhuma origem encontrada.')
 
 else:
     st.warning('Por favor, faça o upload de um arquivo Excel.')
